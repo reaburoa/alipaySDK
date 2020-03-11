@@ -1,6 +1,6 @@
 package request
 
-import "alipaySDK/alipay"
+import "github.com/reaburoa/alipaySDK/alipay"
 
 type TradePayRefund struct {
     BizContent string
