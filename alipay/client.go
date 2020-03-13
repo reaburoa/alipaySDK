@@ -22,6 +22,7 @@ var (
     format = "json"
     errResponse = "error_response"
     signTag = "sign"
+    signTypeRSA2 = "RSA2"
 )
 
 type AliPayClient struct {
@@ -64,6 +65,13 @@ func NewClient(appId, gateWay, privateKey, aliPublicKey, signType string) *AliPa
         SignType: signType,
         Client: http.DefaultClient,
     }
+}
+
+func (r *CommonRequest) toMap() map[string]interface{} {
+    m := make(map[string]interface{})
+    strByte, _ := json.Marshal(r)
+    _ = json.Unmarshal(strByte, &m)
+    return m
 }
 
 func (a *AliPayClient) sortContentByKeys(data map[string]interface{}) []string {
@@ -110,15 +118,10 @@ func (a *AliPayClient) genSignContent(data map[string]interface{}) string {
     return strings.Join(toSignData, "&")
 }
 
-func (a *AliPayClient) genResponseSignContent(data interface{}) string {
-    
-    return ""
-}
-
 func (a *AliPayClient) genSign(data, signType string) string {
     priKey := []byte(signature.FastFormatPrivateKey(a.RsaPrivateKey))
     var sign string
-    if signType == "RSA2" {
+    if signType == signTypeRSA2 {
         sign, _ = signature.SignSha256WithRsa(data, priKey)
     } else {
         sign, _ = signature.SignSha1WithRsa(data, priKey)
@@ -130,12 +133,25 @@ func (a *AliPayClient) genSign(data, signType string) string {
 func (a *AliPayClient) checkSign(data, sign, signType string) bool {
     pubKey := []byte(signature.FastFormatPublicKey(a.AliPublicKey))
     var err error
-    if signType == "RSA2" {
+    if signType == signTypeRSA2 {
         err = signature.VerifySignSha256WithRsa(data, sign, pubKey)
     } else {
         err = signature.VerifySignSha1WithRsa(data, sign, pubKey)
     }
     return err == nil
+}
+
+func (a *AliPayClient) CheckNotifySign(notifyData map[string]interface{}) bool {
+    if notifyData == nil || len(notifyData) == 0 {
+        return false
+    }
+    sign := notifyData["sign"]
+    signType := notifyData["sign_type"]
+    delete(notifyData, "sign")
+    delete(notifyData, "sign_type")
+    toVerifyData := a.genSignContent(notifyData)
+    verifyStr, _ := url.QueryUnescape(toVerifyData)
+    return a.checkSign(verifyStr, sign.(string), signType.(string))
 }
 
 func (a *AliPayClient) formatUrlValue(data map[string]interface{}) url.Values {
@@ -154,18 +170,11 @@ func (a *AliPayClient) methodNameToResponseName(req requestKernel) string {
     return respStr + responseFix
 }
 
-func (r *CommonRequest) toMap() map[string]interface{} {
-    m := make(map[string]interface{})
-    strByte, _ := json.Marshal(r)
-    _ = json.Unmarshal(strByte, &m)
-    return m
-}
-
 func (a *AliPayClient) setHeader(req *http.Request) {
     req.Header.Set("content-type", "application/x-www-form-urlencoded;charset="+a.RequestCharset)
 }
 
-func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToken string) (string, error) {
+func (a *AliPayClient) genReqData(req requestKernel, authToken string) map[string]interface{} {
     commonReq := CommonRequest{
         AppId:        a.AppId,
         Method:       req.GetApiMethod(),
@@ -181,7 +190,12 @@ func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToke
     clientMap := commonReq.toMap()
     commonReq.Sign = a.genSign(a.genSignContent(clientMap), a.SignType)
     clientMap["sign"] = commonReq.Sign
-    formData := a.formatUrlValue(clientMap)
+    
+    return clientMap
+}
+
+func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToken string) (string, error) {
+    formData := a.formatUrlValue(a.genReqData(req, authToken))
     buf := strings.NewReader(formData.Encode())
     reqes, err := http.NewRequest(method, a.GateWay, buf)
     if err != nil {
