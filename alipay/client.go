@@ -97,7 +97,6 @@ func (a *AliPayClient) number2String(number interface{}) string {
     case "float32":
         number = strconv.FormatFloat(number.(float64), 'f', -1, 64)
     case "string":
-        number = number
     default:
         number = ""
     }

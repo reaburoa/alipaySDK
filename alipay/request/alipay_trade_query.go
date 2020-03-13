@@ -23,7 +23,7 @@ func (t AliPayTradeQuery) GetApiVersion() string {
 }
 
 func (t AliPayTradeQuery) SetNotifyUrl(str string) {
-
+    // todo No Need NotifyUrl
 }
 
 func (t AliPayTradeQuery) GetNotifyUrl() string {

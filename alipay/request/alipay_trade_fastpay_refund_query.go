@@ -23,7 +23,7 @@ func (t AliPayTradeFastPayRefundQuery) GetApiVersion() string {
 }
 
 func (t AliPayTradeFastPayRefundQuery) SetNotifyUrl(str string) {
-
+    // todo No Need NotifyUrl
 }
 
 func (t AliPayTradeFastPayRefundQuery) GetNotifyUrl() string {
