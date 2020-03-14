@@ -54,6 +54,34 @@ type CommonRequest struct {
     BizContent   string `json:"biz_content"`
 }
 
+type Response string
+
+func (r *Response) ToMap() (map[string]interface{}, error) {
+    if *r == "" {
+        return nil, errors.New("Response Is Empty")
+    }
+    var mapResp = make(map[string]interface{})
+    err := json.Unmarshal([]byte(*r), &mapResp)
+    if err != nil {
+        return nil, err
+    }
+    
+    return mapResp, nil
+}
+
+func (r *Response) GetResponse(req requestKernel, client *AliPayClient) (map[string]interface{}, error) {
+    mapResp, err := r.ToMap()
+    if err != nil {
+        return nil, err
+    }
+    respKey := client.methodNameToResponseName(req)
+    if value, ok := mapResp[respKey]; ok {
+        return value.(map[string]interface{}), nil
+    } else {
+        return mapResp[errResponse].(map[string]interface{}), nil
+    }
+}
+
 func NewClient(appId, gateWay, privateKey, aliPublicKey, signType string) *AliPayClient {
     return &AliPayClient{
         AppId: appId,
@@ -69,8 +97,11 @@ func NewClient(appId, gateWay, privateKey, aliPublicKey, signType string) *AliPa
 
 func (r *CommonRequest) toMap() map[string]interface{} {
     m := make(map[string]interface{})
-    strByte, _ := json.Marshal(r)
-    _ = json.Unmarshal(strByte, &m)
+    elemValues := reflect.ValueOf(r).Elem()
+    elemTypes := elemValues.Type()
+    for i := 0; i < elemTypes.NumField(); i ++ {
+        m[elemTypes.Field(i).Tag.Get("json")] = elemValues.Field(i).Interface()
+    }
     return m
 }
 
@@ -193,7 +224,7 @@ func (a *AliPayClient) genReqData(req requestKernel, authToken string) map[strin
     return clientMap
 }
 
-func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToken string) (string, error) {
+func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToken string) (Response, error) {
     formData := a.formatUrlValue(a.genReqData(req, authToken))
     buf := strings.NewReader(formData.Encode())
     reqes, err := http.NewRequest(method, a.GateWay, buf)
@@ -220,7 +251,7 @@ func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToke
             return "", errors.New("Check Sign Error")
         }
     }
-    return string(body), nil
+    return Response(body), nil
 }
 
 func (a *AliPayClient) parseBody(body []byte, req requestKernel) (map[string]string, error) {
