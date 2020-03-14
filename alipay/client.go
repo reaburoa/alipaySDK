@@ -40,48 +40,6 @@ type AliPayClient struct {
     Client                *http.Client
 }
 
-type CommonRequest struct {
-    AppId        string `json:"app_id"`
-    Method       string `json:"method"`
-    Format       string `json:"format"`
-    Charset      string `json:"charset"`
-    SignType     string `json:"sign_type"`
-    Sign         string `json:"sign"`
-    Timestamp    string `json:"timestamp"`
-    Version      string `json:"version"`
-    NotifyUrl    string `json:"notify_url"`
-    AppAuthToken string `json:"app_auth_token"`
-    BizContent   string `json:"biz_content"`
-}
-
-type Response string
-
-func (r *Response) ToMap() (map[string]interface{}, error) {
-    if *r == "" {
-        return nil, errors.New("Response Is Empty")
-    }
-    var mapResp = make(map[string]interface{})
-    err := json.Unmarshal([]byte(*r), &mapResp)
-    if err != nil {
-        return nil, err
-    }
-    
-    return mapResp, nil
-}
-
-func (r *Response) GetResponse(req requestKernel, client *AliPayClient) (map[string]interface{}, error) {
-    mapResp, err := r.ToMap()
-    if err != nil {
-        return nil, err
-    }
-    respKey := client.methodNameToResponseName(req)
-    if value, ok := mapResp[respKey]; ok {
-        return value.(map[string]interface{}), nil
-    } else {
-        return mapResp[errResponse].(map[string]interface{}), nil
-    }
-}
-
 func NewClient(appId, gateWay, privateKey, aliPublicKey, signType string) *AliPayClient {
     return &AliPayClient{
         AppId: appId,
@@ -93,16 +51,6 @@ func NewClient(appId, gateWay, privateKey, aliPublicKey, signType string) *AliPa
         SignType: signType,
         Client: http.DefaultClient,
     }
-}
-
-func (r *CommonRequest) toMap() map[string]interface{} {
-    m := make(map[string]interface{})
-    elemValues := reflect.ValueOf(r).Elem()
-    elemTypes := elemValues.Type()
-    for i := 0; i < elemTypes.NumField(); i ++ {
-        m[elemTypes.Field(i).Tag.Get("json")] = elemValues.Field(i).Interface()
-    }
-    return m
 }
 
 func (a *AliPayClient) sortContentByKeys(data map[string]interface{}) []string {
