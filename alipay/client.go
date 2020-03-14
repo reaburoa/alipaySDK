@@ -5,6 +5,7 @@ import (
     "errors"
     "fmt"
     "github.com/reaburoa/elec-signature/signature"
+    "github.com/reaburoa/alipaySDK/alipay/request"
     "io/ioutil"
     "net/http"
     "net/url"
@@ -142,7 +143,7 @@ func (a *AliPayClient) formatUrlValue(data map[string]interface{}) url.Values {
     return formData
 }
 
-func (a *AliPayClient) methodNameToResponseName(req requestKernel) string {
+func (a *AliPayClient) methodNameToResponseName(req request.Requester) string {
     method := req.GetApiMethod()
     respStr := strings.Replace(method, ".", "_", -1)
     return respStr + responseFix
@@ -152,7 +153,7 @@ func (a *AliPayClient) setHeader(req *http.Request) {
     req.Header.Set("content-type", "application/x-www-form-urlencoded;charset="+a.RequestCharset)
 }
 
-func (a *AliPayClient) genReqData(req requestKernel, authToken string) map[string]interface{} {
+func (a *AliPayClient) genReqData(req request.Requester, authToken string) map[string]interface{} {
     commonReq := CommonRequest{
         AppId:        a.AppId,
         Method:       req.GetApiMethod(),
@@ -172,7 +173,7 @@ func (a *AliPayClient) genReqData(req requestKernel, authToken string) map[strin
     return clientMap
 }
 
-func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToken string) (Response, error) {
+func (a *AliPayClient) Execute(req request.Requester, method, authToken, appAuthToken string) (Response, error) {
     formData := a.formatUrlValue(a.genReqData(req, authToken))
     buf := strings.NewReader(formData.Encode())
     reqes, err := http.NewRequest(method, a.GateWay, buf)
@@ -202,7 +203,7 @@ func (a *AliPayClient) Execute(req requestKernel, method, authToken, appAuthToke
     return Response(body), nil
 }
 
-func (a *AliPayClient) parseBody(body []byte, req requestKernel) (map[string]string, error) {
+func (a *AliPayClient) parseBody(body []byte, req request.Requester) (map[string]string, error) {
     bodyStr := string(body)
     responseReg := a.methodNameToResponseName(req)
     if strings.Index(bodyStr, errResponse) > -1 {

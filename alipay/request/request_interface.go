@@ -1,8 +1,8 @@
-package alipay
+package request
 
 import "encoding/json"
 
-type requestKernel interface {
+type Requester interface {
     SetBizContent(data map[string]interface{})
     GetBizContent() string
     GetApiMethod() string

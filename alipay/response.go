@@ -3,6 +3,7 @@ package alipay
 import (
     "encoding/json"
     "errors"
+    "github.com/reaburoa/alipaySDK/alipay/request"
 )
 
 type Response string
@@ -20,7 +21,7 @@ func (r *Response) ToMap() (map[string]interface{}, error) {
     return mapResp, nil
 }
 
-func (r *Response) GetResponse(req requestKernel, client *AliPayClient) (map[string]interface{}, error) {
+func (r *Response) GetResponse(req request.Requester, client *AliPayClient) (map[string]interface{}, error) {
     mapResp, err := r.ToMap()
     if err != nil {
         return nil, err
