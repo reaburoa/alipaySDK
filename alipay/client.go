@@ -98,7 +98,7 @@ func (a *AliPayClient) genSignContent(data map[string]interface{}) string {
 }
 
 func (a *AliPayClient) genSign(data, signType string) string {
-    priKey := []byte(signature.FastFormatPrivateKey(a.RsaPrivateKey))
+    priKey := signature.FastFormatPrivateKey(a.RsaPrivateKey)
     var sign string
     if signType == signTypeRSA2 {
         sign, _ = signature.SignSha256WithRsa(data, priKey)
@@ -110,7 +110,7 @@ func (a *AliPayClient) genSign(data, signType string) string {
 }
 
 func (a *AliPayClient) checkSign(data, sign, signType string) bool {
-    pubKey := []byte(signature.FastFormatPublicKey(a.AliPublicKey))
+    pubKey := signature.FastFormatPublicKey(a.AliPublicKey)
     var err error
     if signType == signTypeRSA2 {
         err = signature.VerifySignSha256WithRsa(data, sign, pubKey)
